@@ -2,11 +2,12 @@ import sys
 import os
 import time
 import datetime
+import requests
 
 pivotTime = 0
 
 def printUsage():
-	print ("usage : python sender.py [working directory] [receiver server IP] [fuzzer name] [option]")
+	print ("usage : python sender.py [working directory] [fuzzer name] [fuzzing program] [receiver server IP] [option]")
 	print ("""
 Option
 
@@ -21,18 +22,19 @@ Option
 	If you do not specify this option, ping port will be set default value, 1337
 		""")
 
-def sendToReceiver(filename, fuzzer, receiverIP, alias):
-	print(filename)
-	print(fuzzer)
+def sendToReceiver(filename, fuzzer, fuzzingProgram, receiverIP, alias, pingPort):
+	payload = {'fuzzer' : fuzzer, 'fuzzingProgram' : fuzzingProgram, 'alias' : alias, 'pingPort' : pingPort}
+	r = requests.post(receiverIP+"/crash", data=payload)
 
-def searchDir(dirname, fuzzer, receiverIP, alias):
+def searchDir(dirname, fuzzer, fuzzingProgram, receiverIP, alias, pingPort):
 	newPivotTime = pivotTime
 	filenames = os.listdir(dirname)
 	for filename in filenames:								#get files
 		full_filename = os.path.join(dirname, filename)		#get file name
 		fileCreateTime = datetime.datetime.fromtimestamp(os.path.getctime(full_filename))		#get file created time
 		if(fileCreateTime > pivotTime):
-			sendToReceiver(filename, fuzzer, receiverIP, alias)
+			sendToReceiver(filename, fuzzer, fuzzingProgram, receiverIP, alias, pingPort)
+			print ("send success!")
 			newPivotTime = max(newPivotTime, fileCreateTime)
 	return newPivotTime
 
@@ -40,7 +42,7 @@ def searchDir(dirname, fuzzer, receiverIP, alias):
 if __name__ == "__main__":
 	argc = len(sys.argv)
 	alias = "None"
-	pingPort = "1337"
+	pingPort = "None"
 
 	for i in range(0, argc):
 		if sys.argv[i][0] == '-':
@@ -64,7 +66,8 @@ if __name__ == "__main__":
 
 	workDir = sys.argv[1]
 	fuzzer = sys.argv[2]
-	receiverIP = sys.argv[3]
+	fuzzingProgram = sys.argv[3]
+	receiverIP = sys.argv[4]
 
 	#print ("%s %s %s %s %s" % (workDir, fuzzer, receiverIP, alias, pingPort))
 
@@ -72,4 +75,4 @@ if __name__ == "__main__":
 	print ("search start time : [%s]" % str(pivotTime))
 	while True:
 		time.sleep(1)
-		pivotTime = searchDir(workDir, fuzzer, receiverIP, alias)
+		pivotTime = searchDir(workDir, fuzzer, fuzzingProgram, receiverIP, alias, pingPort)
