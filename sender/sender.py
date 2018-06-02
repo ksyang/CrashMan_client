@@ -22,20 +22,24 @@ Option
 	If you do not specify this option, ping port will be set default value, 1337
 		""")
 
-def sendToReceiver(filename, fuzzer, fuzzingProgram, receiverIP, alias, pingPort):
+def sendVmToReveiver(fuzzer, fuzzingProgram, receiverIP, alias, pingPort):
 	payload = {'fuzzer' : fuzzer, 'fuzzingProgram' : fuzzingProgram, 'alias' : alias, 'pingPort' : pingPort}
+	r = requests.post(receiverIP+"/vm", data=payload)
+
+def sendCrashToReceiver(crashName, fuzzingProgram, receiverIP):
+	payload = {'crashName' : crashName, 'fuzzingProgram' : fuzzingProgram}
 	r = requests.post(receiverIP+"/crash", data=payload)
 
-def searchDir(dirname, fuzzer, fuzzingProgram, receiverIP, alias, pingPort):
+def searchDir(workDir, fuzzingProgram, receiverIP):
 	newPivotTime = pivotTime
-	filenames = os.listdir(dirname)
-	for filename in filenames:								#get files
-		full_filename = os.path.join(dirname, filename)		#get file name
-		fileCreateTime = datetime.datetime.fromtimestamp(os.path.getctime(full_filename))		#get file created time
-		if(fileCreateTime > pivotTime):
-			sendToReceiver(filename, fuzzer, fuzzingProgram, receiverIP, alias, pingPort)
-			print ("send success!")
-			newPivotTime = max(newPivotTime, fileCreateTime)
+	filenames = os.listdir(workDir)
+	for crashName in filenames:								#get files
+		full_crashName = os.path.join(workDir, crashName)		#get file name
+		crashCreateTime = datetime.datetime.fromtimestamp(os.path.getctime(full_crashName))		#get file created time
+		if(crashCreateTime > pivotTime):
+			sendCrashToReceiver(crashName, fuzzingProgram, receiverIP)
+			print ("crash send success!")
+			newPivotTime = max(newPivotTime, crashCreateTime)
 	return newPivotTime
 
 
@@ -69,10 +73,14 @@ if __name__ == "__main__":
 	fuzzingProgram = sys.argv[3]
 	receiverIP = sys.argv[4]
 
-	#print ("%s %s %s %s %s" % (workDir, fuzzer, receiverIP, alias, pingPort))
+	#print ("%s %s %s %s %s %s" % (workDir, fuzzer, fuzzingProgram, receiverIP, alias, pingPort))
 
 	pivotTime = datetime.datetime.now()
 	print ("search start time : [%s]" % str(pivotTime))
+
+	sendVmToReveiver(fuzzer, fuzzingProgram, receiverIP, alias, pingPort)
+	print ("vm reg success")
+
 	while True:
 		time.sleep(1)
-		pivotTime = searchDir(workDir, fuzzer, fuzzingProgram, receiverIP, alias, pingPort)
+		pivotTime = searchDir(workDir, fuzzingProgram, receiverIP)
