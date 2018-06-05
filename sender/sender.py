@@ -1,8 +1,10 @@
+import socket
 import sys
 import os
 import time
 import datetime
 import requests
+import threading
 
 pivotTime = 0
 
@@ -21,6 +23,21 @@ Option
 	This is an option that set crash sender's ping check port.
 	If you do not specify this option, ping port will be set default value, 1337
 		""")
+
+def pingReceiver(pingPort):
+	HOST = ''                   # Symbolic name meaning all available interfaces
+	PORT = int(pingPort)
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.bind((HOST, PORT))
+	while 1:
+		s.listen(1)
+		conn, addr = s.accept()
+		print ('Connected by', addr)
+		while 1:
+			data = conn.recv(1024)
+			if not data: break
+			conn.sendall(b'success')
+		conn.close()
 
 def sendVmToReveiver(fuzzer, fuzzingProgram, receiverIP, alias, pingPort):
 	payload = {'fuzzer' : fuzzer, 'fuzzingProgram' : fuzzingProgram, 'alias' : alias, 'pingPort' : pingPort}
@@ -73,10 +90,13 @@ if __name__ == "__main__":
 	fuzzingProgram = sys.argv[3]
 	receiverIP = sys.argv[4]
 
-	#print ("%s %s %s %s %s %s" % (workDir, fuzzer, fuzzingProgram, receiverIP, alias, pingPort))
-
 	pivotTime = datetime.datetime.now()
 	print ("search start time : [%s]" % str(pivotTime))
+
+	if pingPort != "None":
+		pingThread = threading.Thread(target=pingReceiver, args=(pingPort,))
+		pingThread.daemon = True
+		pingThread.start()
 
 	sendVmToReveiver(fuzzer, fuzzingProgram, receiverIP, alias, pingPort)
 	print ("vm reg success")
