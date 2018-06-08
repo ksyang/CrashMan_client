@@ -9,7 +9,7 @@ import threading
 pivotTime = 0
 
 def printUsage():
-	print ("usage : python sender.py [working directory] [fuzzer name] [fuzzing program] [receiver server IP] [option]")
+	print ("usage : python sender.py [working directory] [fuzzer name] [fuzzing_os] [fuzzing program] [receiver server IP] [option]")
 	print ("""
 Option
 
@@ -39,8 +39,8 @@ def pingReceiver(pingPort):
 			conn.sendall(b'success')
 		conn.close()
 
-def sendVmToReveiver(fuzzer, fuzzingProgram, receiverIP, alias, pingPort):
-	payload = {'fuzzer' : fuzzer, 'fuzzingProgram' : fuzzingProgram, 'alias' : alias, 'pingPort' : pingPort}
+def sendVmToReveiver(fuzzer, fuzzingProgram, fuzzing_os, receiverIP, alias, pingPort):
+	payload = {'fuzzer' : fuzzer, 'fuzzingProgram' : fuzzingProgram, 'fuzzing_os' : fuzzing_os, 'alias' : alias, 'pingPort' : pingPort}
 	r = requests.post(receiverIP+"/vm", data=payload)
 
 def sendCrashToReceiver(crashName, fuzzingProgram, receiverIP):
@@ -87,8 +87,10 @@ if __name__ == "__main__":
 
 	workDir = sys.argv[1]
 	fuzzer = sys.argv[2]
-	fuzzingProgram = sys.argv[3]
-	receiverIP = sys.argv[4]
+	fuzzing_os = sys.argv[3]
+	fuzzingProgram = sys.argv[4]
+	receiverIP = sys.argv[5]
+		
 
 	pivotTime = datetime.datetime.now()
 	print ("search start time : [%s]" % str(pivotTime))
@@ -98,7 +100,7 @@ if __name__ == "__main__":
 		pingThread.daemon = True
 		pingThread.start()
 
-	sendVmToReveiver(fuzzer, fuzzingProgram, receiverIP, alias, pingPort)
+	sendVmToReveiver(fuzzer, fuzzingProgram, fuzzing_os, receiverIP, alias, pingPort)
 	print ("vm reg success")
 
 	while True:
